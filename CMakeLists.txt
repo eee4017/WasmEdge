@@ -138,6 +138,7 @@ endif()
 
 add_subdirectory(include)
 add_subdirectory(lib)
+add_subdirectory(plugins)
 add_subdirectory(thirdparty)
 if(BUILD_TOOLS)
   if(BUILD_TOOL_WASMEDGE_STATIC)

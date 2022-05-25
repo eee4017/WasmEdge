@@ -17,8 +17,9 @@ main: main.cc
 	clang++-12 -lwasmedge_c -o $@ $^
 
 clean:
-	rm -f main mandelbrot.wasm mandelbrot.so mandelbrot.o output.png mandelbrot.wat
+	rm -f main mandelbrot.wasm mandelbrot.so mandelbrot.o mandelbrot.wat output.png output.bin
 
 test:
 	rm -f output.png
 	LD_LIBRARY_PATH=/root/WasmEdge/build/lib/api ./main
+	node convert.js

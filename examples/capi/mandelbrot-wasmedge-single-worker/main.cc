@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstdio>
 #include <iostream>
 #include <wasmedge/wasmedge.h>
 using namespace std;
@@ -9,6 +10,9 @@ template <class result_t = std::chrono::nanoseconds,
 auto since(std::chrono::time_point<clock_t, duration_t> const &start) {
   return std::chrono::duration_cast<result_t>(clock_t::now() - start);
 }
+
+const int WIDTH = 1200;
+const int HEIGHT = 800;
 
 int main() {
   /* Create the VM context. */
@@ -30,12 +34,12 @@ int main() {
   double x = -0.743644786;
   double y = 0.1318252536;
   double d = 0.00029336;
-  int maxIterations = 100;
+  int maxIterations = 1000;
   WasmEdge_String ModName = WasmEdge_StringCreateByCString("mandelbrot");
   Res = WasmEdge_VMRegisterModuleFromFile(VMCxt, ModName, "./mandelbrot.so");
   if (!WasmEdge_ResultOK(Res)) {
-    printf("WASM registration failed: %s\n", WasmEdge_ResultGetMessage(Res));
-    return 1;
+    cout << "Registration failed:" << WasmEdge_ResultGetMessage(Res) << "\n";
+    return -1;
   }
 
   /* The parameters and returns arrays. */
@@ -45,18 +49,38 @@ int main() {
       WasmEdge_ValueGenF64(y),
       WasmEdge_ValueGenF64(d),
   };
-  WasmEdge_Value Returns[1];
   WasmEdge_String FuncName = WasmEdge_StringCreateByCString("mandelbrot");
   auto start = std::chrono::steady_clock::now();
   Res = WasmEdge_VMExecuteRegistered(VMCxt, ModName, FuncName, Params, 4, NULL,
                                      0);
-  std::cout << "Elapsed Time: " << since(start).count()/1e6 << std::endl;
-
+  cout << "Elapsed Time: " << since(start).count() / 1e6 << std::endl;
   if (WasmEdge_ResultOK(Res)) {
-    cout << "Got the result: ok";
+    cout << "Got the result: ok\n";
   } else {
     cout << "Error message: " << WasmEdge_ResultGetMessage(Res) << "\n";
+    return -1;
   }
+
+  FuncName = WasmEdge_StringCreateByCString("getImage");
+  WasmEdge_Value Returns[1];
+  Res = WasmEdge_VMExecuteRegistered(VMCxt, ModName, FuncName, NULL, 0, Returns,
+                                     1);
+  int64_t offset = (int64_t)WasmEdge_ValueGetExternRef(Returns[0]);
+  cout << "Offset: " << offset << "\n";
+
+  unsigned char image[WIDTH * HEIGHT * 4];
+  Res = WasmEdge_MemoryInstanceGetData(HostMemory, image, offset,
+                                       WIDTH * HEIGHT * 4);
+  if (WasmEdge_ResultOK(Res)) {
+    cout << "Get memory: ok\n";
+  } else {
+    cout << "Error message: " << WasmEdge_ResultGetMessage(Res) << "\n";
+    return -1;
+  }
+
+  FILE *pFile = fopen("output.bin", "wb");
+  fwrite(image, sizeof(char), sizeof(image), pFile);
+  fclose(pFile);
 
   /* Resources deallocations. */
   WasmEdge_VMDelete(VMCxt);

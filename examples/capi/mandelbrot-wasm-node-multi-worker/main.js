@@ -13,7 +13,7 @@ const config = {
   x: -0.743644786,
   y: 0.1318252536,
   d: 0.00029336,
-  iterations: 10000,
+  iterations: 1000,
 };
 
 const num_threads = 4;
